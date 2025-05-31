@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Home, Wallet, TrendingUp, User } from 'lucide-react';
+import { Home, Wallet, TrendingUp, User, BarChart3 } from 'lucide-react';
 import Header from '@/components/Header';
 import PortfolioChart from '@/components/PortfolioChart';
 import CryptoList from '@/components/CryptoList';
@@ -10,6 +9,8 @@ import TransactionModal from '@/components/TransactionModal';
 import SuccessModal from '@/components/SuccessModal';
 import BuyModal from '@/components/BuyModal';
 import SendModal from '@/components/SendModal';
+import MarketView from '@/components/MarketView';
+import MarketBuyModal from '@/components/MarketBuyModal';
 import UserProfile from '@/components/UserProfile';
 import LoginForm from '@/components/LoginForm';
 import { cryptoData, transactionHistory } from '@/data/cryptoData';
@@ -38,6 +39,10 @@ const Index = () => {
   }>({ isOpen: false, type: 'buy', crypto: '', amount: 0 });
   const [buyModal, setBuyModal] = useState(false);
   const [sendModal, setSendModal] = useState(false);
+  const [marketBuyModal, setMarketBuyModal] = useState<{
+    isOpen: boolean;
+    crypto: CryptoCurrency | null;
+  }>({ isOpen: false, crypto: null });
 
   const { toast } = useToast();
 
@@ -135,6 +140,10 @@ const Index = () => {
       title: "Envio realizado!",
       description: `${amount} ${crypto.symbol} enviados para ${address.substring(0, 10)}...`,
     });
+  };
+
+  const handleMarketBuy = (crypto: CryptoCurrency) => {
+    setMarketBuyModal({ isOpen: true, crypto });
   };
 
   const handleCryptoSelect = (crypto: CryptoCurrency) => {
@@ -258,6 +267,18 @@ const Index = () => {
           </>
         )}
 
+        {activeTab === 'market' && (
+          <>
+            <div className="bg-crypto-blue text-white p-6">
+              <h1 className="text-xl font-bold">Mercado</h1>
+            </div>
+            <MarketView 
+              cryptos={cryptoData} 
+              onBuyCrypto={handleMarketBuy}
+            />
+          </>
+        )}
+
         {activeTab === 'transactions' && (
           <>
             <div className="bg-crypto-blue text-white p-6">
@@ -282,13 +303,14 @@ const Index = () => {
             {[
               { id: 'home', icon: Home, label: 'Início' },
               { id: 'wallet', icon: Wallet, label: 'Carteira' },
+              { id: 'market', icon: BarChart3, label: 'Mercado' },
               { id: 'transactions', icon: TrendingUp, label: 'Transações' },
               { id: 'profile', icon: User, label: 'Perfil' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center py-2 px-4 rounded-lg transition-colors ${
+                className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
                   activeTab === tab.id 
                     ? 'text-crypto-blue bg-blue-50' 
                     : 'text-gray-500'
@@ -313,6 +335,13 @@ const Index = () => {
           onClose={() => setSendModal(false)}
           userCryptos={cryptos}
           onSend={handleSendCrypto}
+        />
+
+        <MarketBuyModal
+          crypto={marketBuyModal.crypto}
+          isOpen={marketBuyModal.isOpen}
+          onClose={() => setMarketBuyModal({ isOpen: false, crypto: null })}
+          onBuy={handleBuyCrypto}
         />
 
         <TransactionModal
