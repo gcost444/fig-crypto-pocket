@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 interface HeaderProps {
   userName: string;
   totalBalance: number;
+  onReceive: () => void;
+  onSend: () => void;
 }
 
-const Header = ({ userName, totalBalance }: HeaderProps) => {
+const Header = ({ userName, totalBalance, onReceive, onSend }: HeaderProps) => {
   return (
     <div className="bg-gradient-to-r from-crypto-blue to-crypto-lightBlue text-white p-6 rounded-b-3xl">
       <div className="flex justify-between items-center mb-6">
@@ -26,11 +28,17 @@ const Header = ({ userName, totalBalance }: HeaderProps) => {
       </div>
       
       <div className="flex gap-3">
-        <Button className="flex-1 bg-white text-crypto-blue hover:bg-gray-100 rounded-2xl h-12">
+        <Button 
+          onClick={onReceive}
+          className="flex-1 bg-white text-crypto-blue hover:bg-gray-100 rounded-2xl h-12"
+        >
           <ArrowDown size={18} className="mr-2" />
           Receber
         </Button>
-        <Button className="flex-1 bg-white bg-opacity-20 text-white hover:bg-opacity-30 rounded-2xl h-12">
+        <Button 
+          onClick={onSend}
+          className="flex-1 bg-white bg-opacity-20 text-white hover:bg-opacity-30 rounded-2xl h-12"
+        >
           <ArrowUp size={18} className="mr-2" />
           Enviar
         </Button>

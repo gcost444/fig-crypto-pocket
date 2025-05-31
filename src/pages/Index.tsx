@@ -7,6 +7,9 @@ import CryptoDetail from '@/components/CryptoDetail';
 import TransactionHistory from '@/components/TransactionHistory';
 import TransactionModal from '@/components/TransactionModal';
 import SuccessModal from '@/components/SuccessModal';
+import BuyModal from '@/components/BuyModal';
+import SendModal from '@/components/SendModal';
+import UserProfile from '@/components/UserProfile';
 import LoginForm from '@/components/LoginForm';
 import { cryptoData, transactionHistory } from '@/data/cryptoData';
 import { CryptoCurrency, Transaction } from '@/types/crypto';
@@ -14,11 +17,13 @@ import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [user, setUser] = useState({ name: '', email: '', totalBalance: 56908.32 });
+  const [user, setUser] = useState({ name: '', email: '', totalBalance: 0 });
   const [activeTab, setActiveTab] = useState('home');
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoCurrency | null>(null);
-  const [cryptos, setCryptos] = useState(cryptoData);
-  const [transactions, setTransactions] = useState(transactionHistory);
+  const [cryptos, setCryptos] = useState(() => 
+    cryptoData.map(crypto => ({ ...crypto, balance: 0 }))
+  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionModal, setTransactionModal] = useState<{
     isOpen: boolean;
     type: 'buy' | 'sell';
@@ -30,6 +35,8 @@ const Index = () => {
     crypto: string;
     amount: number;
   }>({ isOpen: false, type: 'buy', crypto: '', amount: 0 });
+  const [buyModal, setBuyModal] = useState(false);
+  const [sendModal, setSendModal] = useState(false);
 
   const { toast } = useToast();
 
@@ -37,12 +44,95 @@ const Index = () => {
     setUser({ 
       name: email.split('@')[0], 
       email, 
-      totalBalance: 56908.32 
+      totalBalance: 0 
     });
     setIsLoggedIn(true);
     toast({
       title: "Login realizado com sucesso!",
       description: "Bem-vindo à sua carteira de criptomoedas.",
+    });
+  };
+
+  const handleBuyCrypto = (cryptoId: string, amountUSD: number) => {
+    const crypto = cryptoData.find(c => c.id === cryptoId);
+    if (!crypto) return;
+
+    const cryptoAmount = amountUSD / crypto.price;
+    
+    const newTransaction: Transaction = {
+      id: Date.now().toString(),
+      type: 'buy',
+      crypto: crypto.symbol,
+      amount: cryptoAmount,
+      price: crypto.price,
+      total: amountUSD,
+      date: new Date().toISOString()
+    };
+
+    setTransactions([newTransaction, ...transactions]);
+
+    // Atualizar saldo da cripto
+    setCryptos(prevCryptos => 
+      prevCryptos.map(c => 
+        c.id === cryptoId 
+          ? { ...c, balance: c.balance + cryptoAmount }
+          : c
+      )
+    );
+
+    // Atualizar saldo total do usuário
+    setUser(prevUser => ({
+      ...prevUser,
+      totalBalance: prevUser.totalBalance + amountUSD
+    }));
+
+    setSuccessModal({
+      isOpen: true,
+      type: 'buy',
+      crypto: crypto.symbol,
+      amount: cryptoAmount
+    });
+
+    toast({
+      title: "Compra realizada!",
+      description: `${cryptoAmount.toFixed(8)} ${crypto.symbol} comprados com sucesso.`,
+    });
+  };
+
+  const handleSendCrypto = (cryptoId: string, amount: number, address: string) => {
+    const crypto = cryptos.find(c => c.id === cryptoId);
+    if (!crypto || crypto.balance < amount) return;
+
+    const newTransaction: Transaction = {
+      id: Date.now().toString(),
+      type: 'sell',
+      crypto: crypto.symbol,
+      amount,
+      price: crypto.price,
+      total: amount * crypto.price,
+      date: new Date().toISOString()
+    };
+
+    setTransactions([newTransaction, ...transactions]);
+
+    // Atualizar saldo da cripto
+    setCryptos(prevCryptos => 
+      prevCryptos.map(c => 
+        c.id === cryptoId 
+          ? { ...c, balance: c.balance - amount }
+          : c
+      )
+    );
+
+    // Atualizar saldo total do usuário (remove o valor vendido)
+    setUser(prevUser => ({
+      ...prevUser,
+      totalBalance: prevUser.totalBalance - (amount * crypto.price)
+    }));
+
+    toast({
+      title: "Envio realizado!",
+      description: `${amount} ${crypto.symbol} enviados para ${address.substring(0, 10)}...`,
     });
   };
 
@@ -92,8 +182,8 @@ const Index = () => {
     setUser(prevUser => ({
       ...prevUser,
       totalBalance: transactionModal.type === 'buy'
-        ? prevUser.totalBalance - newTransaction.total
-        : prevUser.totalBalance + newTransaction.total
+        ? prevUser.totalBalance + newTransaction.total
+        : prevUser.totalBalance - newTransaction.total
     }));
 
     setSuccessModal({
@@ -145,7 +235,12 @@ const Index = () => {
       <div className="max-w-md mx-auto bg-white min-h-screen">
         {activeTab === 'home' && (
           <>
-            <Header userName={user.name} totalBalance={user.totalBalance} />
+            <Header 
+              userName={user.name} 
+              totalBalance={user.totalBalance}
+              onReceive={() => setBuyModal(true)}
+              onSend={() => setSendModal(true)}
+            />
             <CryptoList cryptos={cryptos} onCryptoSelect={handleCryptoSelect} />
           </>
         )}
@@ -169,19 +264,12 @@ const Index = () => {
         )}
 
         {activeTab === 'profile' && (
-          <div className="p-6">
-            <div className="bg-crypto-blue text-white p-6 rounded-2xl mb-6">
-              <h1 className="text-xl font-bold">Perfil</h1>
-              <p className="mt-2">Nome: {user.name}</p>
-              <p>Email: {user.email}</p>
-            </div>
-            <button
-              onClick={() => setIsLoggedIn(false)}
-              className="w-full p-4 bg-crypto-red text-white rounded-2xl"
-            >
-              Sair da conta
-            </button>
-          </div>
+          <UserProfile 
+            user={user}
+            cryptos={cryptos}
+            transactions={transactions}
+            onLogout={() => setIsLoggedIn(false)}
+          />
         )}
 
         {/* Bottom Navigation */}
@@ -210,6 +298,19 @@ const Index = () => {
         </div>
 
         {/* Modals */}
+        <BuyModal
+          isOpen={buyModal}
+          onClose={() => setBuyModal(false)}
+          onBuy={handleBuyCrypto}
+        />
+
+        <SendModal
+          isOpen={sendModal}
+          onClose={() => setSendModal(false)}
+          userCryptos={cryptos}
+          onSend={handleSendCrypto}
+        />
+
         <TransactionModal
           crypto={transactionModal.crypto!}
           type={transactionModal.type}
