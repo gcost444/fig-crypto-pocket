@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Home, Wallet, TrendingUp, User } from 'lucide-react';
 import Header from '@/components/Header';
+import PortfolioChart from '@/components/PortfolioChart';
 import CryptoList from '@/components/CryptoList';
 import CryptoDetail from '@/components/CryptoDetail';
 import TransactionHistory from '@/components/TransactionHistory';
@@ -241,6 +242,9 @@ const Index = () => {
               onReceive={() => setBuyModal(true)}
               onSend={() => setSendModal(true)}
             />
+            <div className="p-4">
+              <PortfolioChart cryptos={cryptos} totalBalance={user.totalBalance} />
+            </div>
             <CryptoList cryptos={cryptos} onCryptoSelect={handleCryptoSelect} />
           </>
         )}
